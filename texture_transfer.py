@@ -28,11 +28,11 @@ def min_cut_path(errors):
             next_index=current_index+i
             if 0<=next_index<w:
                 if(current_depth,next_index) not in visited:
-                    cumError=error+errors[current_depth,next_index]
-                    heapq.heappush(pq,(cumError,path+[next_index]))
+                    cum_error=error+errors[current_depth,next_index]
+                    heapq.heappush(pq,(cum_error,path+[next_index]))
                     visited.add((current_depth,next_index))
 
-def min_cut_patch(patch,overlap,synthesis_img,y,x):
+def min_cut_patch(patch,synthesis_img,overlap,y,x):
     patch=patch.copy()
     min_cut=np.zeros_like(patch,dtype=bool)
 
@@ -104,7 +104,7 @@ def synthesis_texture(img,synthesis_img_size,block_size,overlap=0,patch_select_m
                 raise Exception ("Invalid patch select mode")
     
             if(fill_mode=="min_bound_cut"):
-                patch=min_cut_patch(patch,overlap,synthesis_img,y,x)
+                patch=min_cut_patch(patch,synthesis_img,overlap,y,x)
             if(fill_mode=="tile" or fill_mode=="overlap" or fill_mode=="min_bound_cut"):
                 synthesis_img[y:y+block_size[0],x:x+block_size[1]]=patch
             else:
