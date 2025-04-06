@@ -232,7 +232,6 @@ def quilt_simple(texture:np.ndarray,synthesis_img_size:tuple,block_size:tuple,ov
                 plt.show()
                 plt.imshow(texture[i:i+fill_size[0], j:j+fill_size[1], :])
                 plt.show()
-
     return synthesis_img.astype(np.uint8)
 
 def mask_cut(error:np.ndarray)->np.ndarray:
@@ -358,6 +357,136 @@ def quilt_cut(texture:np.ndarray,synthesis_img_size:tuple,block_size:tuple,overl
                 plt.tight_layout()
                 plt.show()
 
-            synthesis_img[y:y+fill_size[0], x:x+fill_size[1], :] = patch+template
-            
+            synthesis_img[y:y+fill_size[0], x:x+fill_size[1], :] = patch+template       
     return synthesis_img.astype(np.uint8)
+
+def texture_transfer(texture:np.ndarray,target:np.ndarray,block_size:tuple,overlap:int,tolerance:int,alpha:float,show_cut:bool=False)->np.ndarray:
+    '''
+    Reconstruct `target` image using `texture` using texture synthesis principles
+    '''
+    offset = (block_size[0] - overlap, block_size[1]-overlap)
+    
+    transfered=np.zeros(target.shape)
+
+    for y in range(0, target.shape[0], offset[0]):
+        for x in range(0, target.shape[1], offset[1]):
+            fill_size=list(block_size)
+            if(y+block_size[0]>=target.shape[0]):
+                fill_size[0]=target.shape[0]-y
+            if(x+block_size[1]>=target.shape[1]):
+                fill_size[1]=target.shape[1]-x
+
+            template = transfered[y:y+fill_size[0], x:x+fill_size[1], :].copy().astype(np.uint8)
+            _target=target[y:y+fill_size[0], x:x+fill_size[1], :].copy()
+            mask = np.zeros(fill_size)
+            
+            if y == 0:
+                mask[:, :overlap, :] = 1
+            elif x == 0:
+                mask[:overlap, :, :] = 1
+            else:
+                mask[:, :overlap, :] = 1
+                mask[:overlap, :, :] = 1
+                
+            half = [fill_size[0]//2, fill_size[1]//2]
+                
+            if(show_cut):
+                fig,axes=plt.subplots(2,8,figsize=(18,4),facecolor='lightgray')
+                for ax in axes.flat:
+                    ax.axis('off')
+
+            ssd_overlap = ssd_patch(template, mask, texture)
+            ssd_target=ssd_patch(_target,np.ones((fill_size[0], fill_size[1], 3)),texture)
+            if(show_cut):
+                axes[0,0].imshow(ssd_overlap)
+                axes[0,0].set_title("Error of Texture with Template")
+            
+                temp=ssd_overlap.copy()
+                temp[:half[0],:]=0
+                temp[:,:half[1]]=0
+                temp[-half[0]:,:]=0
+                temp[:,-half[1]:]=0
+                axes[1,0].imshow(temp)
+                axes[1,0].set_title("Clipped Error")
+
+                axes[0,1].imshow(ssd_overlap)
+                axes[0,1].set_title("Error of Texture with Target")
+            
+                temp=ssd_overlap.copy()
+                temp[:half[0],:]=0
+                temp[:,:half[1]]=0
+                temp[-half[0]:,:]=0
+                temp[:,-half[1]:]=0
+                axes[1,1].imshow(temp)
+                axes[1,1].set_title("Clipped Error")
+            
+            ssd_overlap = ssd_overlap[half[0]:-half[0], half[1]:-half[1]]
+            ssd_target = ssd_target[half[0]:-half[0], half[1]:-half[1]]
+
+            ssd=(alpha*ssd_overlap)+((1-alpha)*ssd_target)
+
+            i, j = choose_sample(ssd, tolerance)
+            
+            patch = texture[i:i+fill_size[0], j:j+fill_size[1], :].copy()
+                
+            mask1 = np.zeros(fill_size)
+            if(y!=0):
+                diff1 = (template[:overlap, :fill_size[0], :] - patch[:overlap, :fill_size[0], :]) ** 2
+                diff1 = np.sum(diff1, axis=2)
+                if(show_cut):
+                    axes[0,2].imshow(diff1.astype(np.uint8))
+                    axes[0,2].set_title("Horizontal Overlap Error")
+                mask_patch1 = mask_cut(diff1.T).transpose(1,0,2)
+                mask1[:overlap, :fill_size[0]] = mask_patch1
+            if(show_cut):
+                axes[0,3].imshow(mask1)
+                axes[0,3].set_title("Horizontal Overlap Mask")
+
+            mask2 = np.zeros(fill_size)
+            if(x!=0):
+                diff2 = (template[:fill_size[1], :overlap, :] - patch[:fill_size[1], :overlap, :]) ** 2
+                diff2 = np.sum(diff2, axis=2)
+                if(show_cut):
+                    axes[1,2].imshow(diff2.astype(np.uint8))
+                    axes[1,2].set_title("Vertical Overlap Error")
+                mask_patch2 = mask_cut(diff2)
+                mask2[:fill_size[1], :overlap] = mask_patch2
+            if(show_cut):
+                axes[1,3].imshow(mask2)
+                axes[1,3].set_title("Vertical Overlap Mask")
+
+            if(x==0):
+                full_mask_patch=mask1.astype(np.uint8)
+            elif(y==0):
+                full_mask_patch=mask2.astype(np.uint8)
+            else:
+                full_mask_patch=np.logical_or(mask1,mask2).astype(np.uint8)
+            if(show_cut):
+                ax5=plt.subplot(1,8,5)
+                ax5.imshow(full_mask_patch.astype(np.float32))
+                ax5.set_title("Combined Mask")
+                ax5.axis('off')
+                axes[0,5].imshow(template)
+                axes[0,5].set_title("Template Full")
+                axes[1,5].imshow(patch)
+                axes[1,5].set_title("Patch Full")
+
+            template = (template*full_mask_patch).astype(np.uint8)
+            full_mask_patch^=1
+            patch = (patch*full_mask_patch).astype(np.uint8)
+            
+            if(show_cut):
+                axes[0,6].imshow(template)
+                axes[0,6].set_title("Template Masked")
+                axes[1,6].imshow(patch)
+                axes[1,6].set_title("Patch Masked")
+                ax6=plt.subplot(1,8,8)
+                ax6.imshow(patch+template)
+                ax6.set_title("Combined Patch")
+                ax6.axis('off')
+
+                plt.tight_layout()
+                plt.show()
+
+            transfered[y:y+fill_size[0], x:x+fill_size[1], :] = patch+template 
+    return transfered.astype(np.uint8)
