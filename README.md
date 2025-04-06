@@ -1,0 +1,2 @@
+### Image Quilting:
+- Implementing the texture synthesis and texture transfer algorithm using image quilting, described by [Efros and Freeman (2001)](https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/papers/efros-siggraph01.pdf)
