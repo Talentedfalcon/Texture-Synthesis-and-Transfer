@@ -24,36 +24,43 @@
 
     - #### Random Block Tiling with Minimum Error Boundary Cut:
         - **Example of Cut**:
-
-            
+          
+          ![image](https://github.com/user-attachments/assets/af7694f7-a138-4717-b310-650377189b93)
+        
         - **Output**:
-
-
+          
+          ![image](https://github.com/user-attachments/assets/4895d903-66d0-4064-b6bb-3f45ca9f6265)
 
     - #### Best Block Tiling with Minimum Error Boundary Cut:
         - **Example of Cut**:
+          
+          ![image](https://github.com/user-attachments/assets/2fa056d6-d02b-494f-a5f1-63ad9f4c7e3b)
 
-            
         - **Output**:
-
+          
+          ![image](https://github.com/user-attachments/assets/b1454ecb-fd84-4744-bb9f-1f70a8e0b85f)
 
     - #### Threshold Error Block Select with Boundary Overlap:
         - In this method the Error is computed using *Sum Squared Error of template and mask*, *Convolution of texture image and template*, *Convolution of texture image and mask*. With that we will get an error map for the whole texture image now we find valid points in texture image within an error threshold and choose such a point randomly.
             
         - **Example of Cut**:
-
-            
+          
+          ![image](https://github.com/user-attachments/assets/1fc6e831-6a33-4a57-ab18-f7811bd54570)
+          
         - **Output**:
 
+          ![image](https://github.com/user-attachments/assets/e61fa23e-b2ab-462a-850b-a45c5f48403e)
 
     - #### Threshold Error Block Select with Minimum Error Boundary Cut:
         - **Example of Cut**:
-
+          
+          ![image](https://github.com/user-attachments/assets/8b80346d-4861-4f54-8fba-e1deedea1954)
             
         - **Output**:
 
+          ![image](https://github.com/user-attachments/assets/a3c70c0a-71ca-4d6e-891b-5a48a99d52a8)
 
-2. ### Texture Transfer:
+1. ### Texture Transfer:
     - Here the *Threshold Error Block Select with Minimum Error Boundary Cut* method is used to get patches and stitch them. The output will be the same size as the target image
     - We achieve this by getting:
         - Error map of template and texture => ***error1***
@@ -62,6 +69,9 @@
         
     - **Example of Cut**:
 
-        
+      ![image](https://github.com/user-attachments/assets/9c67c6ca-81e0-49ab-b549-5fe062973fdd)
+  
     - **Output**:
 
+      ![image](https://github.com/user-attachments/assets/cd0cc6e7-2b1d-46c7-bc6b-52f26ef98d2a)
+      
