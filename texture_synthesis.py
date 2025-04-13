@@ -421,26 +421,19 @@ def texture_transfer(texture:np.ndarray,target:np.ndarray,block_size:tuple,overl
             half = [fill_size[0]//2, fill_size[1]//2]
                 
             if(show_cut):
-                fig,axes=plt.subplots(2,8,figsize=(18,4),facecolor='lightgray')
+                fig,axes=plt.subplots(2,9,figsize=(18,4),facecolor='lightgray')
                 for ax in axes.flat:
                     ax.axis('off')
 
             ssd_overlap = ssd_patch(template, mask, texture)
             ssd_target=ssd_patch(_target,np.ones((fill_size[0], fill_size[1], 3)),texture)
             if(show_cut):
-                axes[0,0].imshow(ssd_overlap)
-                axes[0,0].set_title("Error Texture with Template")
-            
-                temp=ssd_overlap.copy()
-                temp[:half[0],:]=0
-                temp[:,:half[1]]=0
-                temp[-half[0]:,:]=0
-                temp[:,-half[1]:]=0
-                axes[1,0].imshow(temp)
-                axes[1,0].set_title("Clipped Error")
-
+                ax1=plt.subplot(1,9,1)
+                ax1.imshow(_target)
+                ax1.set_title("Target Patch")
+                ax1.axis('off')
                 axes[0,1].imshow(ssd_overlap)
-                axes[0,1].set_title("Error Texture with Target")
+                axes[0,1].set_title("Error Texture with Template")
             
                 temp=ssd_overlap.copy()
                 temp[:half[0],:]=0
@@ -449,6 +442,17 @@ def texture_transfer(texture:np.ndarray,target:np.ndarray,block_size:tuple,overl
                 temp[:,-half[1]:]=0
                 axes[1,1].imshow(temp)
                 axes[1,1].set_title("Clipped Error")
+
+                axes[0,2].imshow(ssd_overlap)
+                axes[0,2].set_title("Error Texture with Target")
+            
+                temp=ssd_overlap.copy()
+                temp[:half[0],:]=0
+                temp[:,:half[1]]=0
+                temp[-half[0]:,:]=0
+                temp[:,-half[1]:]=0
+                axes[1,2].imshow(temp)
+                axes[1,2].set_title("Clipped Error")
             
             ssd_overlap = ssd_overlap[half[0]:-half[0], half[1]:-half[1]]
             ssd_target = ssd_target[half[0]:-half[0], half[1]:-half[1]]
@@ -464,26 +468,26 @@ def texture_transfer(texture:np.ndarray,target:np.ndarray,block_size:tuple,overl
                 diff1 = (template[:overlap, :fill_size[0], :] - patch[:overlap, :fill_size[0], :]) ** 2
                 diff1 = np.sum(diff1, axis=2)
                 if(show_cut):
-                    axes[0,2].imshow(diff1.astype(np.uint8))
-                    axes[0,2].set_title("Horizontal Overlap Error")
+                    axes[0,3].imshow(diff1.astype(np.uint8))
+                    axes[0,3].set_title("Horizontal Overlap Error")
                 mask_patch1 = mask_cut(diff1.T).transpose(1,0,2)
                 mask1[:overlap, :fill_size[0]] = mask_patch1
             if(show_cut):
-                axes[0,3].imshow(mask1)
-                axes[0,3].set_title("Horizontal Overlap Mask")
+                axes[0,4].imshow(mask1)
+                axes[0,4].set_title("Horizontal Overlap Mask")
 
             mask2 = np.zeros(fill_size)
             if(x!=0):
                 diff2 = (template[:fill_size[1], :overlap, :] - patch[:fill_size[1], :overlap, :]) ** 2
                 diff2 = np.sum(diff2, axis=2)
                 if(show_cut):
-                    axes[1,2].imshow(diff2.astype(np.uint8))
-                    axes[1,2].set_title("Vertical Overlap Error")
+                    axes[1,3].imshow(diff2.astype(np.uint8))
+                    axes[1,3].set_title("Vertical Overlap Error")
                 mask_patch2 = mask_cut(diff2)
                 mask2[:fill_size[1], :overlap] = mask_patch2
             if(show_cut):
-                axes[1,3].imshow(mask2)
-                axes[1,3].set_title("Vertical Overlap Mask")
+                axes[1,4].imshow(mask2)
+                axes[1,4].set_title("Vertical Overlap Mask")
 
             if(x==0):
                 full_mask_patch=mask1.astype(np.uint8)
@@ -492,28 +496,28 @@ def texture_transfer(texture:np.ndarray,target:np.ndarray,block_size:tuple,overl
             else:
                 full_mask_patch=np.logical_or(mask1,mask2).astype(np.uint8)
             if(show_cut):
-                ax5=plt.subplot(1,8,5)
-                ax5.imshow(full_mask_patch.astype(np.float32))
-                ax5.set_title("Combined Mask")
-                ax5.axis('off')
-                axes[0,5].imshow(template)
-                axes[0,5].set_title("Template Full")
-                axes[1,5].imshow(patch)
-                axes[1,5].set_title("Patch Full")
+                ax6=plt.subplot(1,9,6)
+                ax6.imshow(full_mask_patch.astype(np.float32))
+                ax6.set_title("Combined Mask")
+                ax6.axis('off')
+                axes[0,6].imshow(template)
+                axes[0,6].set_title("Template Full")
+                axes[1,6].imshow(patch)
+                axes[1,6].set_title("Patch Full")
 
             template = (template*full_mask_patch).astype(np.uint8)
             full_mask_patch^=1
             patch = (patch*full_mask_patch).astype(np.uint8)
             
             if(show_cut):
-                axes[0,6].imshow(template)
-                axes[0,6].set_title("Template Masked")
-                axes[1,6].imshow(patch)
-                axes[1,6].set_title("Patch Masked")
-                ax6=plt.subplot(1,8,8)
-                ax6.imshow(patch+template)
-                ax6.set_title("Combined Patch")
-                ax6.axis('off')
+                axes[0,7].imshow(template)
+                axes[0,7].set_title("Template Masked")
+                axes[1,7].imshow(patch)
+                axes[1,7].set_title("Patch Masked")
+                ax9=plt.subplot(1,9,9)
+                ax9.imshow(patch+template)
+                ax9.set_title("Combined Patch")
+                ax9.axis('off')
 
                 plt.tight_layout()
                 plt.show()
