@@ -91,37 +91,60 @@ def min_cut_patch(patch:np.ndarray,synthesis_img:np.ndarray,overlap:int,y:int,x:
     min_cut=np.ones(patch.shape,dtype=bool)
 
     if(show_cut):
-        fig,ax=plt.subplots(3,2)
+        fig,axes=plt.subplots(2,6,figsize=(18,4),facecolor='lightgray')
+        for ax in axes.flat:
+            ax.axis('off')
 
     if x>0:
+        temp_cut=np.ones_like(min_cut,dtype=bool)
         left=patch[:,:overlap]-synthesis_img[y:y+patch.shape[0],x:x+overlap]
         leftL2=np.sum(left**2,axis=2)
         for i,j in enumerate(min_cut_path(leftL2)):
+            temp_cut[i,:j]=False
             min_cut[i,:j]=False
         if(show_cut):
-            ax[0,0].imshow(leftL2)
-            ax[0,1].imshow(min_cut[:,:,0],cmap="gray")
+            axes[1,0].imshow(leftL2)
+            axes[1,0].set_title("Vertical Overlap Error")
+            axes[1,1].imshow(temp_cut[:,:,0].astype(np.uint8),cmap="gray")
+            axes[1,1].set_title("Vertical Overlap Mask")
     if y>0:
+        temp_cut=np.ones_like(min_cut,dtype=bool)
         up=patch[:overlap,:]-synthesis_img[y:y+overlap,x:x+patch.shape[1]]
         upL2=np.sum(up**2,axis=2)
         for j,i in enumerate(min_cut_path(upL2.T)):
+            temp_cut[:i,j]=False
             min_cut[:i,j]=False
         if(show_cut):
-            ax[1,0].imshow(upL2)
-            ax[1,1].imshow(min_cut[:,:,0],cmap="gray")
+            axes[0,0].imshow(upL2)
+            axes[0,0].set_title("Horizontal Overlap Error")
+            axes[0,1].imshow(temp_cut[:,:,0].astype(np.uint8),cmap="gray")
+            axes[0,1].set_title("Horizontal Overlap Mask")
 
-    output=(patch*min_cut)+(synthesis_img[y:y+patch.shape[0],x:x+patch.shape[1]]*(~min_cut))
+
+    output=((patch*min_cut)+(synthesis_img[y:y+patch.shape[0],x:x+patch.shape[1]]*(~min_cut))).astype(np.uint8)
     if(show_cut):
-        ax[2,0].imshow(patch)
-        ax[2,1].imshow(patch*min_cut)
+        ax3=plt.subplot(1,6,3)
+        ax3.axis('off')
+        ax3.set_title("Combined Mask")
+        ax3.imshow(min_cut[:,:,0].astype(np.uint8),cmap="gray")
+        axes[0,3].imshow(synthesis_img[y:y+patch.shape[0],x:x+patch.shape[1]])
+        axes[0,3].set_title("Template Full")
+        axes[1,3].imshow(patch)
+        axes[1,3].set_title("Selected Patch Full")
+        axes[0,4].imshow(synthesis_img[y:y+patch.shape[0],x:x+patch.shape[1]]*(~min_cut))
+        axes[0,4].set_title("Template Masked")
+        axes[1,4].imshow(patch*min_cut)
+        axes[1,4].set_title("Selected Patch Masked")
+        ax6=plt.subplot(1,6,6)
+        ax6.axis('off')
+        ax6.set_title("Output Patch")
+        ax6.imshow(output)
         plt.tight_layout()
-        plt.show()
-        plt.imshow(output)
         plt.show()
 
     return output
 
-def primitive_texture_synthesis(texture:np.ndarray,synthesis_img_size:tuple,block_size:tuple,overlap:int,select_mode:str="random",fill_mode:str="default")->np.ndarray:
+def primitive_texture_synthesis(texture:np.ndarray,synthesis_img_size:tuple,block_size:tuple,overlap:int,select_mode:str="random",fill_mode:str="default",show_cut=False)->np.ndarray:
     '''
     Perform texture synthesis based on random block selection or best block selection
 
@@ -132,7 +155,7 @@ def primitive_texture_synthesis(texture:np.ndarray,synthesis_img_size:tuple,bloc
     select_mode=select_mode.lower()
     fill_mode=fill_mode.lower()
 
-    synthesis_img=np.zeros(synthesis_img_size)
+    synthesis_img=np.zeros(synthesis_img_size).astype(np.uint8)
     for y in range(0,synthesis_img.shape[0],block_size[0]-overlap):
         for x in range(0,synthesis_img.shape[1],block_size[1]-overlap):
             if(select_mode=="random"):
@@ -143,7 +166,7 @@ def primitive_texture_synthesis(texture:np.ndarray,synthesis_img_size:tuple,bloc
                 raise Exception("Invalid select mode")
             
             if(fill_mode=="min_boundary_cut"):
-                patch=min_cut_patch(patch,synthesis_img,overlap,y,x)
+                patch=min_cut_patch(patch,synthesis_img,overlap,y,x,show_cut=show_cut)
             elif(fill_mode!="default"):
                 raise Exception("Invalid fill mode")
                 
@@ -186,7 +209,7 @@ def quilt_simple(texture:np.ndarray,synthesis_img_size:tuple,block_size:tuple,ov
     synthesis_img = np.zeros(synthesis_img_size)
     
     offset = (block_size[0] - overlap, block_size[1]-overlap)
-    
+
     for y in range(0, synthesis_img_size[0], offset[0]):
         for x in range(0, synthesis_img_size[1], offset[1]):
             fill_size=list(block_size)
@@ -208,29 +231,36 @@ def quilt_simple(texture:np.ndarray,synthesis_img_size:tuple,block_size:tuple,ov
                 
             half = [fill_size[0]//2, fill_size[1]//2]
                 
+            if(show_cut):
+                fig,axes=plt.subplots(2,3,figsize=(10,4),facecolor='lightgray')
+                for ax in axes.flat:
+                    ax.axis('off')
+
             ssd = ssd_patch(template, mask, texture)
             if(show_cut):
-                plt.imshow(ssd)
-                plt.show()
+                axes[0,0].imshow(ssd)
+                axes[0,0].set_title("Error of Texture with Template")
             
                 temp=ssd.copy()
                 temp[:half[0],:]=0
                 temp[:,:half[1]]=0
                 temp[-half[0]:,:]=0
                 temp[:,-half[1]:]=0
-                plt.imshow(temp)
-                plt.show()
+                axes[1,0].imshow(temp)
+                axes[1,0].set_title("Clipped Error")
             
             ssd = ssd[half[0]:-half[0], half[1]:-half[1]]
             i, j = choose_sample(ssd, tolerance)
             synthesis_img[y:y+fill_size[0], x:x+fill_size[1], :] = texture[i:i+fill_size[0], j:j+fill_size[1], :]
             
             if(show_cut):
-                plt.imshow(template.astype(np.uint8))
-                plt.show()
-                plt.imshow(mask)
-                plt.show()
-                plt.imshow(texture[i:i+fill_size[0], j:j+fill_size[1], :])
+                axes[0,1].imshow(template.astype(np.uint8))
+                axes[0,1].set_title("Template Full")
+                axes[1,1].imshow(texture[i:i+fill_size[0], j:j+fill_size[1], :])
+                axes[1,1].set_title("Patch Full")
+                ax3=plt.subplot(1,3,3)
+                ax3.imshow((synthesis_img[y:y+fill_size[0], x:x+fill_size[1], :]).astype(np.uint8))
+                ax3.set_title("Output Patch")
                 plt.show()
     return synthesis_img.astype(np.uint8)
 
@@ -399,7 +429,7 @@ def texture_transfer(texture:np.ndarray,target:np.ndarray,block_size:tuple,overl
             ssd_target=ssd_patch(_target,np.ones((fill_size[0], fill_size[1], 3)),texture)
             if(show_cut):
                 axes[0,0].imshow(ssd_overlap)
-                axes[0,0].set_title("Error of Texture with Template")
+                axes[0,0].set_title("Error Texture with Template")
             
                 temp=ssd_overlap.copy()
                 temp[:half[0],:]=0
@@ -410,7 +440,7 @@ def texture_transfer(texture:np.ndarray,target:np.ndarray,block_size:tuple,overl
                 axes[1,0].set_title("Clipped Error")
 
                 axes[0,1].imshow(ssd_overlap)
-                axes[0,1].set_title("Error of Texture with Target")
+                axes[0,1].set_title("Error Texture with Target")
             
                 temp=ssd_overlap.copy()
                 temp[:half[0],:]=0
